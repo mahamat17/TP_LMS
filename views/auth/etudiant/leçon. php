@@ -1,0 +1,65 @@
+<?php
+require_once 'config/db.php';
+check_role('etudiant');
+
+$lecon_id = (int)($_GET['id'] ?? 1);
+
+$stmt = $pdo->prepare("SELECT * FROM lecons WHERE id = ?");
+$stmt->execute([$lecon_id]);
+$lecon = $stmt->fetch();
+
+$stmt_eval = $pdo->prepare("SELECT * FROM evaluations WHERE lecon_id = ?");
+$stmt_eval->execute([$lecon_id]);
+$eval = $stmt_eval->fetch();
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= clean_xss($lecon['titre']) ?></title>
+    <link rel="stylesheet" href="public/css/style.css">
+</head>
+<body>
+<div class="container">
+    <h2>Leçon : <?= clean_xss($lecon['titre']) ?></h2>
+    
+    <div class="content-viewer">
+        <?php if($lecon['type_contenu'] === 'pdf'): ?>
+            <iframe src="public/uploads/<?= $lecon['fichier_url'] ?>"></iframe>
+        <?php else: ?>
+            <video controls><source src="public/uploads/<?= $lecon['fichier_url'] ?>" type="video/mp4"></video>
+        <?php endif; ?>
+    </div>
+
+    <?php if($eval): ?>
+        <div class="quiz-container">
+            <h3><?= clean_xss($eval['titre']) ?></h3>
+            <form id="quizForm">
+                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
+                <input type="hidden" name="lecon_id" value="<?= $lecon_id ?>">
+                <input type="hidden" name="evaluation_id" value="<?= $eval['id'] ?>">
+
+                <?php
+                $stmt_q = $pdo->prepare("SELECT * FROM questions WHERE evaluation_id = ?");
+                $stmt_q->execute([$eval['id']]);
+                $questions = $stmt_q->fetchAll();
+                foreach($questions as $i => $q):
+                ?>
+                    <div style="margin-bottom:12px;">
+                        <p><strong>Q<?= $i+1 ?>: <?= clean_xss($q['question_texte']) ?></strong></p>
+                        <label><input type="radio" name="reponse[<?= $q['id'] ?>]" value="A" required> <?= clean_xss($q['option_a']) ?></label><br>
+                        <label><input type="radio" name="reponse[<?= $q['id'] ?>]" value="B"> <?= clean_xss($q['option_b']) ?></label><br>
+                        <label><input type="radio" name="reponse[<?= $q['id'] ?>]" value="C"> <?= clean_xss($q['option_c']) ?></label><br>
+                        <label><input type="radio" name="reponse[<?= $q['id'] ?>]" value="D"> <?= clean_xss($q['option_d']) ?></label>
+                    </div>
+                <?php endforeach; ?>
+                <button type="submit" class="btn">Valider l'évaluation</button>
+            </form>
+            <div id="quizResult" style="margin-top:15px; font-weight:bold;"></div>
+        </div>
+    <?php endif; ?>
+</div>
+<script src="public/js/quiz.js"></script>
+</body>
+</html>
