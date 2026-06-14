@@ -1,0 +1,50 @@
+<?php
+require_once 'config/db.php';
+require_once 'config/auth.php';
+
+$action = $_GET['action'] ?? 'dashboard';
+$role = $_SESSION['role'] ?? null;
+
+// Gestion des utilisateurs non connectés
+if (!$role) {
+    if ($action === 'login_process') {
+        require_once 'actions/auth/login.php';
+    } else {
+        require_once 'views/auth/login.php';
+    }
+    exit();
+}
+
+// Routeur cloisonné selon le rôle
+switch ($role) {
+    case 'promoteur':
+        if ($action === 'creer_module') {
+            require_once 'actions/promoteur/creer_module.php';
+        } else {
+            require_once 'views/promoteur/dashboard.php';
+        }
+        break;
+
+    case 'enseignant':
+        if ($action === 'ajouter_lecon') {
+            require_once 'actions/enseignant/ajouter_lecon.php';
+        } else {
+            require_once 'views/enseignant/dashboard.php';
+        }
+        break;
+
+    case 'etudiant':
+        if ($action === 'soumettre_quiz') {
+            require_once 'actions/etudiant/valider_quiz.php';
+        } elseif ($action === 'voir_lecon') {
+            require_once 'views/etudiant/lecon.php';
+        } else {
+            require_once 'views/etudiant/dashboard.php';
+        }
+        break;
+
+    default:
+        session_destroy();
+        header("Location: index.php");
+        exit();
+}
