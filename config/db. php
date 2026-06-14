@@ -1,0 +1,24 @@
+<?php
+try {
+    $dbUrl = getenv('DATABASE_URL');
+    
+    if ($dbUrl) {
+        // Mode Production (Render)
+        $database_chunks = parse_url($dbUrl);
+        $host = $database_chunks['host'];
+        $port = $database_chunks['port'] ?? 5432;
+        $user = $database_chunks['user'];
+        $password = $database_chunks['pass'];
+        $dbname = ltrim($database_chunks['path'], '/');
+        
+        $dsn = "pgsql:host=$host;port=$port;dbname=$dbname;";
+        $pdo = new \PDO($dsn, $user, $password, [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
+    } else {
+        // Mode Local (Docker)
+        $pdo = new \PDO("pgsql:host=localhost;port=5432;dbname=tp_lms", "postgres", "password");
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+    }
+} catch (\Exception $e) {
+    die("Erreur de connexion BDD : " . $e->getMessage());
+}
+?>
